@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,6 +77,10 @@ const CommunityPortal = () => {
       title: "Report Submitted Successfully",
       description: `Your report ID is ${reportId}. You will receive SMS updates.`,
     });
+  };
+
+  const handleAnonymousChange = (checked: boolean | "indeterminate") => {
+    setIsAnonymous(checked === true);
   };
 
   return (
@@ -235,7 +238,7 @@ const CommunityPortal = () => {
                   <Checkbox
                     id="anonymous"
                     checked={isAnonymous}
-                    onCheckedChange={setIsAnonymous}
+                    onCheckedChange={handleAnonymousChange}
                   />
                   <Label htmlFor="anonymous" className="text-sm">
                     Submit anonymously (your identity will not be recorded)
