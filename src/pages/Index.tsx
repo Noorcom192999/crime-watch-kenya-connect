@@ -29,6 +29,17 @@ const Index = () => {
       
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-6 w-full flex flex-wrap gap-2 justify-center md:justify-start">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="occurrence-book">Occurrence Book</TabsTrigger>
+            <TabsTrigger value="crime-clock">Crime Clock</TabsTrigger>
+            <TabsTrigger value="community-portal">Community Portal</TabsTrigger>
+            <TabsTrigger value="crime-register">Crime Register</TabsTrigger>
+            <TabsTrigger value="data-sharing">Data Sharing</TabsTrigger>
+            <TabsTrigger value="station-locator">Station Locator</TabsTrigger>
+            <TabsTrigger value="officer-management">Officers</TabsTrigger>
+          </TabsList>
+
           <TabsContent value="dashboard" className="space-y-6">
             {/* Header Section */}
             <div className="text-center space-y-4 mb-8">
