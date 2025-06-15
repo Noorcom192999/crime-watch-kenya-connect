@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +11,7 @@ import CommunityPortal from "@/components/CommunityPortal";
 import CrimeRegister from "@/components/CrimeRegister";
 import DataSharingHub from "@/components/DataSharingHub";
 import StationLocator from "@/components/StationLocator";
+import OfficerManagement from "@/components/OfficerManagement";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -174,6 +174,10 @@ const Index = () => {
 
           <TabsContent value="station-locator">
             <StationLocator />
+          </TabsContent>
+
+          <TabsContent value="officer-management">
+            <OfficerManagement />
           </TabsContent>
         </Tabs>
       </main>
