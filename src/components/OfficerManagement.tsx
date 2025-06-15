@@ -138,8 +138,10 @@ const OfficerManagement = () => {
   };
 
   const filteredOfficers = officers.filter(officer => {
-    const matchesSearch = officer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         officer.badge_number.toLowerCase().includes(searchTerm.toLowerCase());
+    const fullName = officer.full_name ?? "";
+    const badgeNumber = officer.badge_number ?? "";
+    const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         badgeNumber.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRank = filterRank === "all" || officer.rank === filterRank;
     const matchesStatus = filterStatus === "all" || officer.status === filterStatus;
     return matchesSearch && matchesRank && matchesStatus;
