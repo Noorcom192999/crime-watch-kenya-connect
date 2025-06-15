@@ -1,7 +1,7 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
+import { LEVEL_LABELS, LEVEL_COLORS, CATEGORY_LABELS } from "@/utils/reportLevels";
 
 const RecentReports = () => {
   const recentReports = [
@@ -10,7 +10,9 @@ const RecentReports = () => {
       type: "Theft", 
       location: "Westlands", 
       status: "Under Investigation",
-      time: "2 hours ago"
+      time: "2 hours ago",
+      infoLevel: "O", // demo
+      reportCategory: "morning", // demo
     },
     { 
       id: "CR/2024/002", 
@@ -40,8 +42,12 @@ const RecentReports = () => {
       <CardContent className="space-y-3">
         {recentReports.map((report, index) => (
           <div key={index} className="p-3 border rounded-lg text-sm">
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1 gap-1 flex-wrap">
               <span className="font-medium">{report.type}</span>
+              <Badge className={LEVEL_COLORS[report.infoLevel]}>{report.infoLevel}</Badge>
+              <Badge variant="secondary">
+                {CATEGORY_LABELS[report.reportCategory]}
+              </Badge>
               <Badge
                 variant="secondary"
                 className={

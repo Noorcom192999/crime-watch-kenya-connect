@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { MapPin, FileText, AlertTriangle, CheckCircle, Loader2 } from "lucide-re
 import { toast } from "@/hooks/use-toast";
 import { useCrimeReports } from "@/hooks/useCrimeReports";
 import { usePoliceStations } from "@/hooks/usePoliceStations";
+import { LEVEL_LABELS, CATEGORY_LABELS } from "@/utils/reportLevels";
 
 interface ReportFormProps {
   reportType: string;
@@ -42,7 +42,9 @@ const ReportForm = ({
     reporterName: '',
     reporterContact: '',
     evidenceDescription: '',
-    witnessesInfo: ''
+    witnessesInfo: '',
+    reportCategory: 'anytime',
+    infoLevel: 'R'
   });
 
   const { submitReport, loading } = useCrimeReports();
@@ -113,7 +115,9 @@ const ReportForm = ({
       reporter_name: isAnonymous ? undefined : formData.reporterName,
       reporter_contact: isAnonymous ? undefined : formData.reporterContact,
       evidence_description: formData.evidenceDescription || undefined,
-      witnesses_info: formData.witnessesInfo || undefined
+      witnesses_info: formData.witnessesInfo || undefined,
+      report_category: formData.reportCategory as 'morning' | 'evening' | 'anytime' | 'monthly',
+      info_level: formData.infoLevel as 'Z' | 'O' | 'P' | 'R'
     };
 
     const result = await submitReport(reportData);
@@ -129,7 +133,9 @@ const ReportForm = ({
         reporterName: '',
         reporterContact: '',
         evidenceDescription: '',
-        witnessesInfo: ''
+        witnessesInfo: '',
+        reportCategory: 'anytime',
+        infoLevel: 'R'
       });
       setLocation('');
       setNearestStation('');
@@ -286,6 +292,36 @@ const ReportForm = ({
               value={formData.witnessesInfo}
               onChange={(e) => updateFormData('witnessesInfo', e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="report-category">Report Category</Label>
+            <Select value={formData.reportCategory} onValueChange={v => setFormData(prev => ({ ...prev, reportCategory: v }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Morning Report</SelectItem>
+                <SelectItem value="evening">Evening Report</SelectItem>
+                <SelectItem value="anytime">Anytime Report</SelectItem>
+                <SelectItem value="monthly">Monthly Report</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="info-level">Information Level</Label>
+            <Select value={formData.infoLevel} onValueChange={v => setFormData(prev => ({ ...prev, infoLevel: v }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Z">High Risks (Z)</SelectItem>
+                <SelectItem value="O">High Priority (O)</SelectItem>
+                <SelectItem value="P">Priority (P)</SelectItem>
+                <SelectItem value="R">Routine (R)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {!isAnonymous && (

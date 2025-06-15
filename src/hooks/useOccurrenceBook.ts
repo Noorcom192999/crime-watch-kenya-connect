@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
@@ -30,6 +29,8 @@ export interface OccurrenceBookEntry {
     last_name: string;
     rank: string;
   };
+  report_category?: 'morning' | 'evening' | 'anytime' | 'monthly';
+  info_level?: 'Z' | 'O' | 'P' | 'R';
 }
 
 export const useOccurrenceBook = () => {
@@ -59,6 +60,8 @@ export const useOccurrenceBook = () => {
           description: entryData.description,
           evidence_collected: entryData.evidence_collected,
           witnesses_info: entryData.witnesses_info,
+          report_category: entryData.report_category || 'anytime',
+          info_level: entryData.info_level || 'R',
           created_by_officer_id: entryData.created_by_officer_id
         }])
         .select()

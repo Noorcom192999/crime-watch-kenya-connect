@@ -37,4 +37,6 @@ export interface CrimeIncident {
   county: string;
   created_at: string;
   time: string;
+  report_category?: 'morning' | 'evening' | 'anytime' | 'monthly';
+  info_level?: 'Z' | 'O' | 'P' | 'R';
 }

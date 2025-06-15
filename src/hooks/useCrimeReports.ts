@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
@@ -25,6 +24,8 @@ export interface CrimeReport {
   witnesses_info?: string;
   created_at?: string;
   updated_at?: string;
+  report_category?: 'morning' | 'evening' | 'anytime' | 'monthly';
+  info_level?: 'Z' | 'O' | 'P' | 'R';
 }
 
 export const useCrimeReports = () => {
@@ -57,7 +58,9 @@ export const useCrimeReports = () => {
           reporter_name: reportData.is_anonymous ? null : reportData.reporter_name,
           reporter_contact: reportData.is_anonymous ? null : reportData.reporter_contact,
           evidence_description: reportData.evidence_description,
-          witnesses_info: reportData.witnesses_info
+          witnesses_info: reportData.witnesses_info,
+          report_category: reportData.report_category || 'anytime',
+          info_level: reportData.info_level || 'R'
         }])
         .select()
         .single();

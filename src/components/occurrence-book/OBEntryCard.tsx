@@ -1,10 +1,10 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Clock, MapPin, User } from "lucide-react";
 import { OccurrenceBookEntry } from "@/hooks/useOccurrenceBook";
+import { LEVEL_LABELS, LEVEL_COLORS, CATEGORY_LABELS } from "@/utils/reportLevels";
 
 interface OBEntryCardProps {
   entry: OccurrenceBookEntry;
@@ -31,6 +31,8 @@ const OBEntryCard = ({ entry, onStatusUpdate }: OBEntryCardProps) => {
     }
   };
 
+  const getLevelColor = (level: string) => LEVEL_COLORS[level] || "bg-gray-100 text-gray-800";
+
   const formatStatus = (status: string) => {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
@@ -48,6 +50,16 @@ const OBEntryCard = ({ entry, onStatusUpdate }: OBEntryCardProps) => {
               <Badge className={getPriorityColor(entry.priority_level)}>
                 {entry.priority_level} Priority
               </Badge>
+              {entry.info_level && (
+                <Badge className={getLevelColor(entry.info_level)}>
+                  {LEVEL_LABELS[entry.info_level]}
+                </Badge>
+              )}
+              {entry.report_category && (
+                <Badge variant="secondary">
+                  {CATEGORY_LABELS[entry.report_category]}
+                </Badge>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">

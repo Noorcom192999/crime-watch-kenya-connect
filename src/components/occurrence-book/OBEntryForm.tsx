@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText } from "lucide-react";
+import { LEVEL_LABELS, CATEGORY_LABELS } from "@/utils/reportLevels";
 
 interface OBEntryFormProps {
   onSubmit: (formData: any) => Promise<void>;
@@ -24,7 +24,9 @@ const OBEntryForm = ({ onSubmit, onCancel, loading }: OBEntryFormProps) => {
     complainant_contact: "",
     description: "",
     evidence_collected: "",
-    witnesses_info: ""
+    witnesses_info: "",
+    report_category: "anytime" as "morning" | "evening" | "anytime" | "monthly",
+    info_level: "R" as "Z" | "O" | "P" | "R"
   });
 
   const handleSubmit = async () => {
@@ -85,6 +87,36 @@ const OBEntryForm = ({ onSubmit, onCancel, loading }: OBEntryFormProps) => {
                 <SelectItem value="high">High</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="report-category">Report Category</Label>
+            <Select value={formData.report_category} onValueChange={value => setFormData({ ...formData, report_category: value as any })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Morning Report</SelectItem>
+                <SelectItem value="evening">Evening Report</SelectItem>
+                <SelectItem value="anytime">Anytime Report</SelectItem>
+                <SelectItem value="monthly">Monthly Report</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="info-level">Information Level</Label>
+            <Select value={formData.info_level} onValueChange={value => setFormData({ ...formData, info_level: value as any })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Z">High Risks (Z)</SelectItem>
+                <SelectItem value="O">High Priority (O)</SelectItem>
+                <SelectItem value="P">Priority (P)</SelectItem>
+                <SelectItem value="R">Routine (R)</SelectItem>
               </SelectContent>
             </Select>
           </div>

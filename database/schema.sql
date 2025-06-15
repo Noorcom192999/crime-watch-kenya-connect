@@ -1,4 +1,3 @@
-
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -47,8 +46,6 @@ CREATE TABLE officers (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- ... keep existing code (Crime Reports table and other tables) the same ...
-
 -- Crime Reports table (for community reports)
 CREATE TABLE crime_reports (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -71,6 +68,8 @@ CREATE TABLE crime_reports (
     assigned_officer_id UUID REFERENCES officers(id),
     evidence_description TEXT,
     witnesses_info TEXT,
+    report_category VARCHAR(20) NOT NULL DEFAULT 'anytime' CHECK (report_category IN ('morning', 'evening', 'anytime', 'monthly')),
+    info_level VARCHAR(1) NOT NULL DEFAULT 'R' CHECK (info_level IN ('Z', 'O', 'P', 'R')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -90,6 +89,8 @@ CREATE TABLE occurrence_book_entries (
     evidence_collected TEXT,
     witnesses_info TEXT,
     status VARCHAR(50) DEFAULT 'new' CHECK (status IN ('new', 'under_investigation', 'resolved', 'closed')),
+    report_category VARCHAR(20) NOT NULL DEFAULT 'anytime' CHECK (report_category IN ('morning', 'evening', 'anytime', 'monthly')),
+    info_level VARCHAR(1) NOT NULL DEFAULT 'R' CHECK (info_level IN ('Z', 'O', 'P', 'R')),
     investigating_officer_id UUID REFERENCES officers(id),
     created_by_officer_id UUID NOT NULL REFERENCES officers(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -150,8 +151,6 @@ CREATE TABLE evidence_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- ... keep existing code (indexes and functions) the same ...
-
 -- Indexes for better performance
 CREATE INDEX idx_crime_reports_status ON crime_reports(status);
 CREATE INDEX idx_crime_reports_station ON crime_reports(assigned_station_id);
@@ -189,8 +188,6 @@ INSERT INTO officers (service_number, first_name, last_name, rank, station_id, p
 ('SSGT006789', 'Rose', 'Cherono', 'Senior Sergeant', (SELECT id FROM police_stations WHERE name = 'Central Police Station'), '+254-700-666666', 'r.cherono@police.go.ke'),
 ('CI007890', 'James', 'Ochieng', 'Chief Inspector', (SELECT id FROM police_stations WHERE name = 'Westlands Police Station'), '+254-700-777777', 'j.ochieng@police.go.ke'),
 ('ASP008901', 'Lucy', 'Kamau', 'Assistant Superintendent', (SELECT id FROM police_stations WHERE name = 'Karen Police Station'), '+254-700-888888', 'l.kamau@police.go.ke');
-
--- ... keep existing code (functions, RLS policies, and sample data) the same ...
 
 -- Function to generate report IDs
 CREATE OR REPLACE FUNCTION generate_report_id()
@@ -315,4 +312,3 @@ INSERT INTO evidence_items (evidence_id, case_id, type, description, location, c
 ('EV/2024/0001', 'CASE-2024-001', 'Physical', 'Stolen mobile phone Samsung Galaxy', 'Evidence Locker A-1', 'PC John Mwangi', '2024-01-15', 'Secured', 'Verified'),
 ('EV/2024/0002', 'CASE-2024-002', 'Digital', 'CCTV footage from Tom Mboya Street', 'Digital Storage Unit B', 'Sgt. Mary Wanjiku', '2024-01-16', 'Under Analysis', 'Verified'),
 ('EV/2024/0003', 'CASE-2024-003', 'Document', 'Fraudulent bank statements', 'Evidence Locker C-5', 'PC David Kipchoge', '2024-01-10', 'Secured', 'Verified');
-
