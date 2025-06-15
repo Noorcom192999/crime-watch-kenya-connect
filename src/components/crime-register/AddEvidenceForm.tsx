@@ -22,7 +22,8 @@ const AddEvidenceForm = ({ onSuccess, onCancel }: AddEvidenceFormProps) => {
     location: '',
     collected_by: '',
     date_collected: '',
-    status: 'Secured'
+    status: 'Secured',
+    integrity_status: 'Verified'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,7 +37,8 @@ const AddEvidenceForm = ({ onSuccess, onCancel }: AddEvidenceFormProps) => {
         location: '',
         collected_by: '',
         date_collected: '',
-        status: 'Secured'
+        status: 'Secured',
+        integrity_status: 'Verified'
       });
       onSuccess?.();
     }
