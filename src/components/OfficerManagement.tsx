@@ -1,59 +1,87 @@
-
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Search, Star, Shield, Phone, Mail } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
-import { KENYA_POLICE_RANKS, getRankAbbreviation, getRankHierarchy, getSupervisionLevel } from "@/utils/policeRanks";
+import { supabase } from "@/lib/supabase";
+import { Search, Plus, Edit, Shield, UserCheck, Users, Star, TrendingUp } from "lucide-react";
+import { KENYA_POLICE_RANKS, PoliceRank, getRankAbbreviation, getSupervisionLevel } from "@/utils/policeRanks";
+import RankStatistics from "@/components/analytics/RankStatistics";
 
 interface Officer {
   id: string;
-  service_number: string;
-  first_name: string;
-  last_name: string;
-  rank: string;
+  badge_number: string;
+  full_name: string;
+  rank: PoliceRank;
   station_id: string;
-  phone?: string;
-  email?: string;
-  is_active: boolean;
-  police_stations?: {
+  phone: string;
+  email: string;
+  status: 'active' | 'inactive' | 'suspended';
+  date_joined: string;
+  created_at: string;
+  station?: {
     name: string;
     county: string;
   };
 }
 
+const officerSchema = z.object({
+  badge_number: z.string().min(1, "Badge number is required"),
+  full_name: z.string().min(1, "Full name is required"),
+  rank: z.enum(KENYA_POLICE_RANKS as [PoliceRank, ...PoliceRank[]]),
+  station_id: z.string().min(1, "Station is required"),
+  phone: z.string().min(1, "Phone number is required"),
+  email: z.string().email("Valid email is required"),
+  status: z.enum(['active', 'inactive', 'suspended']),
+});
+
+type OfficerFormData = z.infer<typeof officerSchema>;
+
 const OfficerManagement = () => {
   const [officers, setOfficers] = useState<Officer[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterRank, setFilterRank] = useState<string>('all');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [stations, setStations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterRank, setFilterRank] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingOfficer, setEditingOfficer] = useState<Officer | null>(null);
+
+  const form = useForm<OfficerFormData>({
+    resolver: zodResolver(officerSchema),
+    defaultValues: {
+      badge_number: "",
+      full_name: "",
+      rank: "Constable",
+      station_id: "",
+      phone: "",
+      email: "",
+      status: "active",
+    },
+  });
+
+  useEffect(() => {
+    fetchOfficers();
+    fetchStations();
+  }, []);
 
   const fetchOfficers = async () => {
-    setLoading(true);
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('officers')
         .select(`
           *,
-          police_stations (
-            name,
-            county
-          )
+          station:police_stations(name, county)
         `)
-        .order('service_number', { ascending: true });
-
-      if (filterRank !== 'all') {
-        query = query.eq('rank', filterRank);
-      }
-
-      const { data, error } = await query;
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setOfficers(data || []);
@@ -61,7 +89,7 @@ const OfficerManagement = () => {
       console.error('Error fetching officers:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch officers data",
+        description: "Failed to fetch officers",
         variant: "destructive",
       });
     } finally {
@@ -69,189 +97,416 @@ const OfficerManagement = () => {
     }
   };
 
-  useEffect(() => {
-    fetchOfficers();
-  }, [filterRank]);
+  const fetchStations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('police_stations')
+        .select('id, name, county')
+        .order('name');
 
-  const filteredOfficers = officers.filter(officer =>
-    `${officer.first_name} ${officer.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    officer.service_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    officer.rank.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getRankBadgeColor = (rank: string) => {
-    const hierarchy = getRankHierarchy(rank as any);
-    if (hierarchy <= 3) return "default";
-    if (hierarchy <= 6) return "secondary";
-    if (hierarchy <= 9) return "outline";
-    return "destructive";
+      if (error) throw error;
+      setStations(data || []);
+    } catch (error: any) {
+      console.error('Error fetching stations:', error);
+    }
   };
+
+  const onSubmit = async (data: OfficerFormData) => {
+    try {
+      if (editingOfficer) {
+        const { error } = await supabase
+          .from('officers')
+          .update(data)
+          .eq('id', editingOfficer.id);
+
+        if (error) throw error;
+        toast({
+          title: "Success",
+          description: "Officer updated successfully",
+        });
+      } else {
+        const { error } = await supabase
+          .from('officers')
+          .insert([data]);
+
+        if (error) throw error;
+        toast({
+          title: "Success", 
+          description: "Officer added successfully",
+        });
+      }
+      
+      setIsDialogOpen(false);
+      setEditingOfficer(null);
+      form.reset();
+      fetchOfficers();
+    } catch (error: any) {
+      console.error('Error saving officer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save officer",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (officer: Officer) => {
+    setEditingOfficer(officer);
+    form.reset({
+      badge_number: officer.badge_number,
+      full_name: officer.full_name,
+      rank: officer.rank,
+      station_id: officer.station_id,
+      phone: officer.phone,
+      email: officer.email,
+      status: officer.status,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const filteredOfficers = officers.filter(officer => {
+    const matchesSearch = officer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         officer.badge_number.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRank = filterRank === "all" || officer.rank === filterRank;
+    const matchesStatus = filterStatus === "all" || officer.status === filterStatus;
+    return matchesSearch && matchesRank && matchesStatus;
+  });
+
+  const rankStatistics = KENYA_POLICE_RANKS.map(rank => {
+    const count = officers.filter(o => o.rank === rank).length;
+    const activeCount = officers.filter(o => o.rank === rank && o.status === 'active').length;
+    return {
+      rank,
+      count,
+      activeCount,
+      percentage: officers.length > 0 ? Math.round((count / officers.length) * 100) : 0,
+    };
+  }).filter(stat => stat.count > 0);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Officer Management</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="pt-6">
+                <div className="h-20 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Officer Management</h2>
-          <p className="text-gray-600">Manage Kenya Police Service personnel and rankings</p>
+          <p className="text-gray-600">Manage Kenya Police Service personnel</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => { setEditingOfficer(null); form.reset(); }}>
               <Plus className="h-4 w-4 mr-2" />
               Add Officer
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Add New Officer</DialogTitle>
+              <DialogTitle>{editingOfficer ? 'Edit Officer' : 'Add New Officer'}</DialogTitle>
               <DialogDescription>
-                Enter officer details with proper Kenya Police Service rank
+                {editingOfficer ? 'Update officer information' : 'Add a new officer to the system'}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="Enter first name" />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Enter last name" />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="serviceNumber">Service Number</Label>
-                <Input id="serviceNumber" placeholder="e.g., PC001234" />
-              </div>
-              <div>
-                <Label htmlFor="rank">Rank</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select rank" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {KENYA_POLICE_RANKS.map((rank) => (
-                      <SelectItem key={rank} value={rank}>
-                        {getRankAbbreviation(rank)} - {rank}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button className="flex-1">Add Officer</Button>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-              </div>
-            </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="badge_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Badge Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="full_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="rank"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rank</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {KENYA_POLICE_RANKS.map((rank) => (
+                            <SelectItem key={rank} value={rank}>
+                              {rank}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="station_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Station</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {stations.map((station) => (
+                            <SelectItem key={station.id} value={station.id}>
+                              {station.name} - {station.county}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="suspended">Suspended</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full">
+                  {editingOfficer ? 'Update Officer' : 'Add Officer'}
+                </Button>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search officers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={filterRank} onValueChange={setFilterRank}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Ranks</SelectItem>
-            {KENYA_POLICE_RANKS.map((rank) => (
-              <SelectItem key={rank} value={rank}>
-                {getRankAbbreviation(rank)} - {rank}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button onClick={fetchOfficers} disabled={loading}>
-          <Users className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
-      {/* Officers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredOfficers.map((officer) => (
-          <Card key={officer.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <CardTitle className="text-lg">
-                      {officer.first_name} {officer.last_name}
-                    </CardTitle>
-                    <CardDescription>{officer.service_number}</CardDescription>
-                  </div>
-                </div>
-                <Badge variant={getRankBadgeColor(officer.rank)}>
-                  {getRankAbbreviation(officer.rank)}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="font-semibold text-sm text-gray-600">Rank</p>
-                <p className="font-medium">{officer.rank}</p>
-                <p className="text-xs text-gray-500">{getSupervisionLevel(officer.rank as any)}</p>
-              </div>
-              
-              <div>
-                <p className="font-semibold text-sm text-gray-600">Station</p>
-                <p className="font-medium">{officer.police_stations?.name || 'Not Assigned'}</p>
-                <p className="text-xs text-gray-500">{officer.police_stations?.county}</p>
-              </div>
-
-              {officer.phone && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-3 w-3 text-gray-400" />
-                  <span>{officer.phone}</span>
-                </div>
-              )}
-
-              {officer.email && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-3 w-3 text-gray-400" />
-                  <span className="truncate">{officer.email}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-1">
-                  <Star className="h-3 w-3 text-yellow-500" />
-                  <span className="text-xs text-gray-500">
-                    Level {getRankHierarchy(officer.rank as any)}
-                  </span>
-                </div>
-                <Badge variant={officer.is_active ? "default" : "secondary"}>
-                  {officer.is_active ? "Active" : "Inactive"}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredOfficers.length === 0 && !loading && (
+      {/* Statistics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-600 mb-2">No Officers Found</h3>
-            <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Officers</p>
+                <p className="text-2xl font-bold">{officers.length}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500" />
+            </div>
           </CardContent>
         </Card>
-      )}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Officers</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {officers.filter(o => o.status === 'active').length}
+                </p>
+              </div>
+              <UserCheck className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Stations Covered</p>
+                <p className="text-2xl font-bold">
+                  {new Set(officers.map(o => o.station_id)).size}
+                </p>
+              </div>
+              <Shield className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Senior Officers</p>
+                <p className="text-2xl font-bold">
+                  {officers.filter(o => 
+                    ['Inspector-General of Police', 'Deputy Inspector-General', 'Senior Assistant Inspector-General', 'Assistant Inspector-General'].includes(o.rank)
+                  ).length}
+                </p>
+              </div>
+              <Star className="h-8 w-8 text-yellow-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Rank Statistics */}
+      <RankStatistics officerData={rankStatistics} />
+
+      {/* Search and Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Officers Directory</CardTitle>
+          <CardDescription>Search and manage police officers</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by name or badge number..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={filterRank} onValueChange={setFilterRank}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by rank" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Ranks</SelectItem>
+                {KENYA_POLICE_RANKS.map((rank) => (
+                  <SelectItem key={rank} value={rank}>
+                    {rank}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Officers List */}
+          <div className="space-y-4">
+            {filteredOfficers.map((officer) => (
+              <div key={officer.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Shield className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">{officer.full_name}</h4>
+                      <p className="text-sm text-gray-600">
+                        {officer.rank} • Badge: {officer.badge_number}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {officer.station?.name}, {officer.station?.county}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant={officer.status === 'active' ? 'default' : 
+                              officer.status === 'suspended' ? 'destructive' : 'secondary'}
+                    >
+                      {officer.status}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(officer)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {filteredOfficers.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No officers found matching your search criteria.
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
 export default OfficerManagement;
-
