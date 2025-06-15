@@ -16,14 +16,14 @@ export const KENYA_POLICE_RANKS = [
   'Inspector-General of Police'
 ] as const;
 
-export type KenyaPoliceRank = typeof KENYA_POLICE_RANKS[number];
+export type PoliceRank = typeof KENYA_POLICE_RANKS[number];
 
-export const getRankHierarchy = (rank: KenyaPoliceRank): number => {
+export const getRankHierarchy = (rank: PoliceRank): number => {
   return KENYA_POLICE_RANKS.indexOf(rank) + 1;
 };
 
-export const getRankAbbreviation = (rank: KenyaPoliceRank): string => {
-  const abbreviations: Record<KenyaPoliceRank, string> = {
+export const getRankAbbreviation = (rank: PoliceRank): string => {
+  const abbreviations: Record<PoliceRank, string> = {
     'Constable': 'PC',
     'Corporal': 'CPL',
     'Sergeant': 'SGT',
@@ -43,8 +43,8 @@ export const getRankAbbreviation = (rank: KenyaPoliceRank): string => {
   return abbreviations[rank];
 };
 
-export const getRankSalaryGrade = (rank: KenyaPoliceRank): string => {
-  const salaryGrades: Record<KenyaPoliceRank, string> = {
+export const getRankSalaryGrade = (rank: PoliceRank): string => {
+  const salaryGrades: Record<PoliceRank, string> = {
     'Constable': 'Job Group D',
     'Corporal': 'Job Group E',
     'Sergeant': 'Job Group F',
@@ -64,11 +64,10 @@ export const getRankSalaryGrade = (rank: KenyaPoliceRank): string => {
   return salaryGrades[rank];
 };
 
-export const getSupervisionLevel = (rank: KenyaPoliceRank): string => {
+export const getSupervisionLevel = (rank: PoliceRank): string => {
   if (['Constable'].includes(rank)) return 'Operational Level';
   if (['Corporal', 'Sergeant', 'Senior Sergeant'].includes(rank)) return 'Supervisory Level';
   if (['Inspector', 'Chief Inspector'].includes(rank)) return 'Management Level';
   if (['Assistant Superintendent', 'Superintendent', 'Senior Superintendent'].includes(rank)) return 'Command Level';
   return 'Executive Level';
 };
-

@@ -36,7 +36,7 @@ interface Officer {
 const officerSchema = z.object({
   badge_number: z.string().min(1, "Badge number is required"),
   full_name: z.string().min(1, "Full name is required"),
-  rank: z.enum(KENYA_POLICE_RANKS as [PoliceRank, ...PoliceRank[]]),
+  rank: z.enum([...KENYA_POLICE_RANKS]),
   station_id: z.string().min(1, "Station is required"),
   phone: z.string().min(1, "Phone number is required"),
   email: z.string().email("Valid email is required"),
