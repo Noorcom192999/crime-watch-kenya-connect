@@ -104,6 +104,35 @@ CREATE TABLE crime_statistics (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Case Files table (for evidence management)
+CREATE TABLE case_files (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    case_id VARCHAR(50) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    lead_officer VARCHAR(255) NOT NULL,
+    status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'closed', 'archived')),
+    priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Evidence Items table (for crime register)
+CREATE TABLE evidence_items (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    evidence_id VARCHAR(50) UNIQUE NOT NULL,
+    case_id VARCHAR(50) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    collected_by VARCHAR(255) NOT NULL,
+    date_collected DATE NOT NULL,
+    status VARCHAR(50) DEFAULT 'Secured' CHECK (status IN ('Secured', 'Under Analysis', 'Released', 'Destroyed')),
+    blockchain_hash VARCHAR(255),
+    integrity_status VARCHAR(50) DEFAULT 'Verified' CHECK (integrity_status IN ('Verified', 'Compromised', 'Under Review')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Indexes for better performance
 CREATE INDEX idx_crime_reports_status ON crime_reports(status);
 CREATE INDEX idx_crime_reports_station ON crime_reports(assigned_station_id);
@@ -118,6 +147,9 @@ CREATE INDEX idx_officers_station ON officers(station_id);
 CREATE INDEX idx_officers_service_number ON officers(service_number);
 
 CREATE INDEX idx_stations_county ON police_stations(county);
+
+CREATE INDEX idx_evidence_case_id ON evidence_items(case_id);
+CREATE INDEX idx_evidence_status ON evidence_items(status);
 
 -- Insert some sample police stations
 INSERT INTO police_stations (name, address, county, sub_county, phone, email, latitude, longitude) VALUES
@@ -182,6 +214,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to generate evidence IDs
+CREATE OR REPLACE FUNCTION generate_evidence_id()
+RETURNS TEXT AS $$
+DECLARE
+    next_number INTEGER;
+    evidence_id TEXT;
+BEGIN
+    -- Get the next number for this year
+    SELECT COALESCE(MAX(CAST(SUBSTRING(evidence_id FROM 'EV/\d{4}/(\d{4})') AS INTEGER)), 0) + 1
+    INTO next_number
+    FROM evidence_items
+    WHERE evidence_id LIKE 'EV/' || EXTRACT(YEAR FROM CURRENT_DATE) || '/%';
+    
+    -- Format the evidence ID
+    evidence_id := 'EV/' || EXTRACT(YEAR FROM CURRENT_DATE) || '/' || LPAD(next_number::TEXT, 4, '0');
+    
+    RETURN evidence_id;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Enable Row Level Security
 ALTER TABLE crime_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE occurrence_book_entries ENABLE ROW LEVEL SECURITY;
@@ -189,6 +241,8 @@ ALTER TABLE officers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE police_stations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE report_status_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE crime_statistics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE case_files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE evidence_items ENABLE ROW LEVEL SECURITY;
 
 -- Basic RLS policies (you can modify these based on your authentication needs)
 
@@ -212,8 +266,27 @@ CREATE POLICY "Officers can manage OB entries" ON occurrence_book_entries
 CREATE POLICY "Officers can read officer data" ON officers
     FOR SELECT USING (true);
 
+-- Evidence and case file policies
+CREATE POLICY "Officers can manage evidence" ON evidence_items
+    FOR ALL USING (true);
+
+CREATE POLICY "Officers can manage case files" ON case_files
+    FOR ALL USING (true);
+
 -- Sample crime reports for testing
 INSERT INTO crime_reports (report_id, report_type, incident_type, urgency_level, description, location_address, incident_date, incident_time, status, priority, is_anonymous, assigned_station_id) VALUES
 ('CR/2024/001', 'incident', 'theft', 'urgent', 'Mobile phone stolen at bus stop', 'Westlands Shopping Centre, Nairobi', '2024-01-15', '14:30:00', 'under_investigation', 'medium', false, (SELECT id FROM police_stations WHERE name = 'Westlands Police Station')),
 ('CR/2024/002', 'tip', 'suspicious-activity', 'routine', 'Suspicious individuals loitering around ATM', 'KCB Bank, Karen Road', '2024-01-16', '09:15:00', 'assigned', 'low', true, (SELECT id FROM police_stations WHERE name = 'Karen Police Station')),
 ('CR/2024/003', 'incident', 'assault', 'emergency', 'Physical altercation reported', 'CBD, Tom Mboya Street', '2024-01-16', '16:45:00', 'resolved', 'high', false, (SELECT id FROM police_stations WHERE name = 'Central Police Station'));
+
+-- Sample case files
+INSERT INTO case_files (case_id, title, lead_officer, status, priority) VALUES
+('CASE-2024-001', 'Westlands Theft Investigation', 'Insp. Grace Akinyi', 'active', 'medium'),
+('CASE-2024-002', 'CBD Assault Case', 'Sgt. Mary Wanjiku', 'active', 'high'),
+('CASE-2024-003', 'Karen Fraud Investigation', 'PC David Kipchoge', 'closed', 'low');
+
+-- Sample evidence items
+INSERT INTO evidence_items (evidence_id, case_id, type, description, location, collected_by, date_collected, status, integrity_status) VALUES
+('EV/2024/0001', 'CASE-2024-001', 'Physical', 'Stolen mobile phone Samsung Galaxy', 'Evidence Locker A-1', 'PC John Mwangi', '2024-01-15', 'Secured', 'Verified'),
+('EV/2024/0002', 'CASE-2024-002', 'Digital', 'CCTV footage from Tom Mboya Street', 'Digital Storage Unit B', 'Sgt. Mary Wanjiku', '2024-01-16', 'Under Analysis', 'Verified'),
+('EV/2024/0003', 'CASE-2024-003', 'Document', 'Fraudulent bank statements', 'Evidence Locker C-5', 'PC David Kipchoge', '2024-01-10', 'Secured', 'Verified');

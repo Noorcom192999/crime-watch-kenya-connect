@@ -3,61 +3,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { TrendingUp, TrendingDown, Clock, AlertTriangle, Shield, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, AlertTriangle, Shield, Target, RefreshCw } from "lucide-react";
+import { useCrimeAnalytics } from "@/hooks/useCrimeAnalytics";
 
 const CrimeClockModule = () => {
-  const hourlyData = [
-    { hour: "00:00", crimes: 12, predictions: 15 },
-    { hour: "03:00", crimes: 8, predictions: 10 },
-    { hour: "06:00", crimes: 15, predictions: 18 },
-    { hour: "09:00", crimes: 25, predictions: 22 },
-    { hour: "12:00", crimes: 35, predictions: 38 },
-    { hour: "15:00", crimes: 42, predictions: 45 },
-    { hour: "18:00", crimes: 55, predictions: 52 },
-    { hour: "21:00", crimes: 38, predictions: 40 },
-  ];
+  const { analyticsData, loading, fetchCrimeAnalytics } = useCrimeAnalytics();
 
-  const crimeTypeData = [
-    { type: "Theft", count: 145, percentage: 35, color: "#3b82f6" },
-    { type: "Assault", count: 89, percentage: 22, color: "#ef4444" },
-    { type: "Burglary", count: 67, percentage: 16, color: "#f59e0b" },
-    { type: "Fraud", count: 45, percentage: 11, color: "#10b981" },
-    { type: "Vandalism", count: 32, percentage: 8, color: "#8b5cf6" },
-    { type: "Other", count: 34, percentage: 8, color: "#6b7280" },
-  ];
+  if (loading || !analyticsData) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Crime Clock Analytics</h2>
+            <p className="text-gray-600">Loading AI-powered crime pattern analysis...</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            <span className="text-sm text-gray-500">Loading data...</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="pt-6">
+                <div className="h-20 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  const locationData = [
-    { location: "Nairobi CBD", crimes: 156, trend: "+12%" },
-    { location: "Westlands", crimes: 89, trend: "-5%" },
-    { location: "Eastlands", crimes: 134, trend: "+8%" },
-    { location: "Karen", crimes: 45, trend: "-2%" },
-    { location: "Kibera", crimes: 167, trend: "+15%" },
-  ];
-
-  const predictions = [
-    {
-      type: "High Risk Period",
-      time: "6:00 PM - 9:00 PM",
-      confidence: "92%",
-      area: "Nairobi CBD",
-      crimes: ["Theft", "Robbery"]
-    },
-    {
-      type: "Medium Risk",
-      time: "12:00 PM - 3:00 PM", 
-      confidence: "78%",
-      area: "Eastlands",
-      crimes: ["Burglary", "Vandalism"]
-    },
-    {
-      type: "Emerging Pattern",
-      time: "Weekend Nights",
-      confidence: "85%",
-      area: "Westlands",
-      crimes: ["Assault", "Domestic Violence"]
-    }
-  ];
+  const { hourlyData, crimeTypeData, locationData, keyMetrics, predictions } = analyticsData;
 
   return (
     <div className="space-y-6">
@@ -78,6 +58,10 @@ const CrimeClockModule = () => {
               <SelectItem value="year">This Year</SelectItem>
             </SelectContent>
           </Select>
+          <Button onClick={fetchCrimeAnalytics} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Button>Generate Report</Button>
         </div>
       </div>
@@ -89,10 +73,10 @@ const CrimeClockModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Peak Crime Hour</p>
-                <p className="text-2xl font-bold">6:00 PM</p>
+                <p className="text-2xl font-bold">{keyMetrics.peakHour}</p>
                 <p className="text-xs text-red-600 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
-                  +15% from last week
+                  High activity period
                 </p>
               </div>
               <Clock className="h-8 w-8 text-red-500" />
@@ -105,10 +89,10 @@ const CrimeClockModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">High Risk Area</p>
-                <p className="text-2xl font-bold">Kibera</p>
+                <p className="text-2xl font-bold">{keyMetrics.highRiskArea}</p>
                 <p className="text-xs text-orange-600 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" />
-                  167 incidents
+                  Requires attention
                 </p>
               </div>
               <AlertTriangle className="h-8 w-8 text-orange-500" />
@@ -121,10 +105,10 @@ const CrimeClockModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Prediction Accuracy</p>
-                <p className="text-2xl font-bold">87%</p>
+                <p className="text-2xl font-bold">{keyMetrics.predictionAccuracy}%</p>
                 <p className="text-xs text-green-600 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
-                  +3% improvement
+                  AI improving
                 </p>
               </div>
               <Target className="h-8 w-8 text-green-500" />
@@ -137,7 +121,7 @@ const CrimeClockModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Prevention Rate</p>
-                <p className="text-2xl font-bold">23%</p>
+                <p className="text-2xl font-bold">{keyMetrics.preventionRate}%</p>
                 <p className="text-xs text-blue-600 flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   Crimes prevented
@@ -157,16 +141,43 @@ const CrimeClockModule = () => {
             <CardDescription>Actual vs Predicted crime occurrences by hour</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={hourlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="hour" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="crimes" stroke="#3b82f6" strokeWidth={2} name="Actual Crimes" />
-                <Line type="monotone" dataKey="predictions" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" name="AI Predictions" />
-              </LineChart>
-            </ResponsiveContainer>
+            <ChartContainer
+              config={{
+                crimes: {
+                  label: "Actual Crimes",
+                  color: "#3b82f6",
+                },
+                predictions: {
+                  label: "AI Predictions",
+                  color: "#ef4444",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={hourlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="hour" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="crimes" 
+                    stroke="var(--color-crimes)" 
+                    strokeWidth={2} 
+                    name="Actual Crimes" 
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="predictions" 
+                    stroke="var(--color-predictions)" 
+                    strokeWidth={2} 
+                    strokeDasharray="5 5" 
+                    name="AI Predictions" 
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -174,27 +185,38 @@ const CrimeClockModule = () => {
         <Card>
           <CardHeader>
             <CardTitle>Crime Types Distribution</CardTitle>
-            <CardDescription>Breakdown of crime categories this month</CardDescription>
+            <CardDescription>Breakdown of crime categories from real data</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={crimeTypeData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="count"
-                  label={({ type, percentage }) => `${type} (${percentage}%)`}
-                >
-                  {crimeTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <ChartContainer
+              config={crimeTypeData.reduce((acc, item) => ({
+                ...acc,
+                [item.type.toLowerCase().replace(/\s+/g, '')]: {
+                  label: item.type,
+                  color: item.color,
+                },
+              }), {})}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={crimeTypeData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="count"
+                    label={({ type, percentage }) => `${type} (${percentage}%)`}
+                  >
+                    {crimeTypeData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
@@ -203,7 +225,7 @@ const CrimeClockModule = () => {
       <Card>
         <CardHeader>
           <CardTitle>Crime Hotspots Analysis</CardTitle>
-          <CardDescription>Geographic distribution and trends by location</CardDescription>
+          <CardDescription>Geographic distribution and trends by location from real data</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -230,7 +252,7 @@ const CrimeClockModule = () => {
       <Card>
         <CardHeader>
           <CardTitle>AI Crime Predictions</CardTitle>
-          <CardDescription>Machine learning insights for proactive policing</CardDescription>
+          <CardDescription>Machine learning insights for proactive policing based on real patterns</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
