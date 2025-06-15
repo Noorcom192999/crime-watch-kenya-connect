@@ -17,13 +17,28 @@ CREATE TABLE police_stations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Officers table
+-- Officers table with proper Kenya Police Service ranks
 CREATE TABLE officers (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     service_number VARCHAR(50) UNIQUE NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    rank VARCHAR(50) NOT NULL,
+    rank VARCHAR(50) NOT NULL CHECK (rank IN (
+        'Constable',
+        'Corporal', 
+        'Sergeant',
+        'Senior Sergeant',
+        'Inspector',
+        'Chief Inspector',
+        'Assistant Superintendent',
+        'Superintendent',
+        'Senior Superintendent',
+        'Commissioner of Police',
+        'Assistant Inspector-General',
+        'Senior Assistant Inspector-General',
+        'Deputy Inspector-General',
+        'Inspector-General of Police'
+    )),
     station_id UUID REFERENCES police_stations(id),
     phone VARCHAR(20),
     email VARCHAR(255),
@@ -31,6 +46,8 @@ CREATE TABLE officers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- ... keep existing code (Crime Reports table and other tables) the same ...
 
 -- Crime Reports table (for community reports)
 CREATE TABLE crime_reports (
@@ -133,6 +150,8 @@ CREATE TABLE evidence_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- ... keep existing code (indexes and functions) the same ...
+
 -- Indexes for better performance
 CREATE INDEX idx_crime_reports_status ON crime_reports(status);
 CREATE INDEX idx_crime_reports_station ON crime_reports(assigned_station_id);
@@ -145,6 +164,7 @@ CREATE INDEX idx_ob_entries_created_at ON occurrence_book_entries(created_at);
 
 CREATE INDEX idx_officers_station ON officers(station_id);
 CREATE INDEX idx_officers_service_number ON officers(service_number);
+CREATE INDEX idx_officers_rank ON officers(rank);
 
 CREATE INDEX idx_stations_county ON police_stations(county);
 
@@ -159,13 +179,18 @@ INSERT INTO police_stations (name, address, county, sub_county, phone, email, la
 ('Kilimani Police Station', 'Argwings Kodhek Road, Kilimani', 'Nairobi', 'Dagoretti North', '+254-20-5555555', 'kilimani@police.go.ke', -1.2962, 36.7828),
 ('Kasarani Police Station', 'Thika Road, Kasarani', 'Nairobi', 'Kasarani', '+254-20-6666666', 'kasarani@police.go.ke', -1.2258, 36.8906);
 
--- Insert sample officers
+-- Insert sample officers with proper Kenya Police Service ranks
 INSERT INTO officers (service_number, first_name, last_name, rank, station_id, phone, email) VALUES
-('PC001234', 'John', 'Mwangi', 'Police Constable', (SELECT id FROM police_stations WHERE name = 'Westlands Police Station'), '+254-700-111111', 'j.mwangi@police.go.ke'),
+('PC001234', 'John', 'Mwangi', 'Constable', (SELECT id FROM police_stations WHERE name = 'Westlands Police Station'), '+254-700-111111', 'j.mwangi@police.go.ke'),
 ('SGT002345', 'Mary', 'Wanjiku', 'Sergeant', (SELECT id FROM police_stations WHERE name = 'Central Police Station'), '+254-700-222222', 'm.wanjiku@police.go.ke'),
-('PC003456', 'David', 'Kipchoge', 'Police Constable', (SELECT id FROM police_stations WHERE name = 'Karen Police Station'), '+254-700-333333', 'd.kipchoge@police.go.ke'),
+('PC003456', 'David', 'Kipchoge', 'Constable', (SELECT id FROM police_stations WHERE name = 'Karen Police Station'), '+254-700-333333', 'd.kipchoge@police.go.ke'),
 ('INSP004567', 'Grace', 'Akinyi', 'Inspector', (SELECT id FROM police_stations WHERE name = 'Kilimani Police Station'), '+254-700-444444', 'g.akinyi@police.go.ke'),
-('PC005678', 'Peter', 'Mutua', 'Police Constable', (SELECT id FROM police_stations WHERE name = 'Kasarani Police Station'), '+254-700-555555', 'p.mutua@police.go.ke');
+('CPL005678', 'Peter', 'Mutua', 'Corporal', (SELECT id FROM police_stations WHERE name = 'Kasarani Police Station'), '+254-700-555555', 'p.mutua@police.go.ke'),
+('SSGT006789', 'Rose', 'Cherono', 'Senior Sergeant', (SELECT id FROM police_stations WHERE name = 'Central Police Station'), '+254-700-666666', 'r.cherono@police.go.ke'),
+('CI007890', 'James', 'Ochieng', 'Chief Inspector', (SELECT id FROM police_stations WHERE name = 'Westlands Police Station'), '+254-700-777777', 'j.ochieng@police.go.ke'),
+('ASP008901', 'Lucy', 'Kamau', 'Assistant Superintendent', (SELECT id FROM police_stations WHERE name = 'Karen Police Station'), '+254-700-888888', 'l.kamau@police.go.ke');
+
+-- ... keep existing code (functions, RLS policies, and sample data) the same ...
 
 -- Function to generate report IDs
 CREATE OR REPLACE FUNCTION generate_report_id()
@@ -290,3 +315,4 @@ INSERT INTO evidence_items (evidence_id, case_id, type, description, location, c
 ('EV/2024/0001', 'CASE-2024-001', 'Physical', 'Stolen mobile phone Samsung Galaxy', 'Evidence Locker A-1', 'PC John Mwangi', '2024-01-15', 'Secured', 'Verified'),
 ('EV/2024/0002', 'CASE-2024-002', 'Digital', 'CCTV footage from Tom Mboya Street', 'Digital Storage Unit B', 'Sgt. Mary Wanjiku', '2024-01-16', 'Under Analysis', 'Verified'),
 ('EV/2024/0003', 'CASE-2024-003', 'Document', 'Fraudulent bank statements', 'Evidence Locker C-5', 'PC David Kipchoge', '2024-01-10', 'Secured', 'Verified');
+

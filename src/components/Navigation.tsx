@@ -11,7 +11,8 @@ import {
   MapPin, 
   Shield,
   Bell,
-  Settings
+  Settings,
+  UserCheck
 } from "lucide-react";
 
 interface NavigationProps {
@@ -26,6 +27,7 @@ const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
     { id: "crime-clock", label: "Crime Clock", icon: Clock },
     { id: "community-portal", label: "Community Portal", icon: Users },
     { id: "crime-register", label: "Crime Register", icon: Database },
+    { id: "officer-management", label: "Officers", icon: UserCheck },
     { id: "data-sharing", label: "Data Hub", icon: Share2 },
     { id: "station-locator", label: "Station Locator", icon: MapPin },
   ];
@@ -96,3 +98,4 @@ const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
 };
 
 export default Navigation;
+
