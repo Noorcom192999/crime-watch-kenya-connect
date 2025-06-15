@@ -60,7 +60,6 @@ export const useOccurrenceBook = () => {
           description: entryData.description,
           evidence_collected: entryData.evidence_collected,
           witnesses_info: entryData.witnesses_info,
-          report_category: entryData.report_category || 'anytime',
           info_level: entryData.info_level || 'R',
           created_by_officer_id: entryData.created_by_officer_id
         }])

@@ -25,7 +25,6 @@ const OBEntryForm = ({ onSubmit, onCancel, loading }: OBEntryFormProps) => {
     description: "",
     evidence_collected: "",
     witnesses_info: "",
-    report_category: "anytime" as "morning" | "evening" | "anytime" | "monthly",
     info_level: "R" as "Z" | "O" | "P" | "R"
   });
 
@@ -92,36 +91,6 @@ const OBEntryForm = ({ onSubmit, onCancel, loading }: OBEntryFormProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="report-category">Report Category</Label>
-            <Select value={formData.report_category} onValueChange={value => setFormData({ ...formData, report_category: value as any })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="morning">Morning Report</SelectItem>
-                <SelectItem value="evening">Evening Report</SelectItem>
-                <SelectItem value="anytime">Anytime Report</SelectItem>
-                <SelectItem value="monthly">Monthly Report</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="info-level">Information Level</Label>
-            <Select value={formData.info_level} onValueChange={value => setFormData({ ...formData, info_level: value as any })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Z">High Risks (Z)</SelectItem>
-                <SelectItem value="O">High Priority (O)</SelectItem>
-                <SelectItem value="P">Priority (P)</SelectItem>
-                <SelectItem value="R">Routine (R)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
             <Input 
               id="location" 
@@ -159,6 +128,21 @@ const OBEntryForm = ({ onSubmit, onCancel, loading }: OBEntryFormProps) => {
               value={formData.complainant_contact}
               onChange={(e) => setFormData({...formData, complainant_contact: e.target.value})}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="info-level">Information Level</Label>
+            <Select value={formData.info_level} onValueChange={value => setFormData({ ...formData, info_level: value as any })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Z">High Risks (Z)</SelectItem>
+                <SelectItem value="O">High Priority (O)</SelectItem>
+                <SelectItem value="P">Priority (P)</SelectItem>
+                <SelectItem value="R">Routine (R)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

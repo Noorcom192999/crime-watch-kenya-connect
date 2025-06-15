@@ -55,11 +55,6 @@ const OBEntryCard = ({ entry, onStatusUpdate }: OBEntryCardProps) => {
                   {LEVEL_LABELS[entry.info_level]}
                 </Badge>
               )}
-              {entry.report_category && (
-                <Badge variant="secondary">
-                  {CATEGORY_LABELS[entry.report_category]}
-                </Badge>
-              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
